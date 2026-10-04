@@ -76,3 +76,7 @@ transformers_cache/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Demo artifacts and private hosting configuration
+artifacts/
+.streamlit/secrets.toml

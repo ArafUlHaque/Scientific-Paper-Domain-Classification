@@ -85,7 +85,7 @@ The most frequent BERT confusion was **Biochemistry → Medical Science (11 case
 - General-purpose GloVe vectors do not cover all scientific vocabulary.
 - Recorded tuning times are specific to the experiment sessions.
 
-**Planned interactive demo:** paste an abstract and compare the trained BERT classifier with the Logistic Regression baseline. The demo is not deployed yet; saved model artifacts are required. See the [demo design](docs/demo_plan.md).
+**Interactive demo implemented:** paste an abstract, try examples from seven domains, and compare the original BERT and Logistic Regression classifiers with ranked scores. [App source](demo/app.py) · [Run locally or deploy](docs/demo_setup.md). Public hosting is pending; the original model bundle is an external runtime dependency. The author verified both selected checkpoints on Kaggle with zero mismatches across all 1,796 saved test predictions.
 
 ## Author and credits
 

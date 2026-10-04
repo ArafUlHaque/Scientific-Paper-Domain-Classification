@@ -1,0 +1,11 @@
+{
+  "bundle_sha256": "6ae6fc30811b3ea98c8e54272a8b80761f725976e244d1f838e049460c393c21",
+  "files": {
+    "checkpoints/BERT_3/best_model/config.json": "619579c234758c4dea11c0d73c74566f96abe4d507bb4d9d6bbe3df99d5dc606",
+    "checkpoints/BERT_3/best_model/model.safetensors": "f704e9b185c369105f5b1b88c7d37dd08d9d5ee3c03ae121a1e4a009e477ee3d",
+    "checkpoints/BERT_3/best_model/tokenizer.json": "881fa1cae69b9dcb65a3a39328e1edde016ea17b23aab92781ab403f30d09d45",
+    "checkpoints/BERT_3/best_model/tokenizer_config.json": "797ed9ba72b500001971b827b0040b8743def8ec38f9cd4cda4c4945734d3596",
+    "checkpoints/LR_3.joblib": "33e7eca94dc3eb561507db88a089880b6b23852691535b386d65c25fd0625631",
+    "tfidf_vectorizer.joblib": "00eaa6f383f9258a48a04238b24e5bbeb456dd49252c77637cf0bd19c3fdb4fa"
+  }
+}
