@@ -1,6 +1,7 @@
 """Interactive scientific abstract classification demo."""
 import json
 import sys
+import time
 from dataclasses import asdict
 from pathlib import Path
 
@@ -11,6 +12,7 @@ import streamlit as st
 
 from demo.artifacts import resolve_artifacts
 from demo.inference import BertClassifier, LogisticClassifier, validate_text
+from demo.request_limits import RequestGate, RequestRejected
 
 st.set_page_config(page_title="Scientific Paper Domain Classifier", page_icon="📄", layout="wide")
 
@@ -19,6 +21,11 @@ st.set_page_config(page_title="Scientific Paper Domain Classifier", page_icon="�
 def load_classifier(name):
     root = resolve_artifacts()
     return BertClassifier(root) if name == "BERT" else LogisticClassifier(root)
+
+
+@st.cache_resource(show_spinner=False)
+def request_gate():
+    return RequestGate()
 
 
 examples = json.loads((Path(__file__).parent / "examples.json").read_text())
@@ -40,6 +47,7 @@ with classify_tab:
         choice = st.radio("Model", ["BERT", "Logistic Regression", "Compare both"], horizontal=True)
         st.caption("BERT achieved the strongest test result. Logistic Regression offers a lightweight baseline.")
         submitted = st.button("Classify abstract", type="primary", width="stretch")
+        st.caption("Please allow 10 seconds between submissions. When the demo is busy, try again shortly.")
         st.caption("Examples are synthetic illustrations, not benchmark samples. Submitted text is not written to files or logged by this app.")
 
     signature = (text, choice)
@@ -52,15 +60,21 @@ with classify_tab:
         try:
             validate_text(text)
             names = ["BERT", "Logistic Regression"] if choice == "Compare both" else [choice]
-            for name in names:
+            with request_gate().admit(st.session_state.get("last_classification_finished")):
                 try:
-                    with st.spinner(f"Classifying with {name}…"):
-                        results.append(asdict(load_classifier(name).predict(text)))
-                except ValueError as error:
-                    errors.append(f"{name}: {error}")
-                except Exception:
-                    # Do not expose submitted text, local paths, or server details.
-                    errors.append(f"{name} is currently unavailable. Please try again later.")
+                    for name in names:
+                        try:
+                            with st.spinner(f"Classifying with {name}…"):
+                                results.append(asdict(load_classifier(name).predict(text)))
+                        except ValueError as error:
+                            errors.append(f"{name}: {error}")
+                        except Exception:
+                            # Do not expose submitted text, local paths, or server details.
+                            errors.append(f"{name} is currently unavailable. Please try again later.")
+                finally:
+                    st.session_state["last_classification_finished"] = time.monotonic()
+        except RequestRejected as error:
+            errors.append(str(error))
         except ValueError as error:
             errors.append(str(error))
         st.session_state["results"] = results
