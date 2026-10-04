@@ -54,7 +54,32 @@ Run the integration checks after installing artifacts:
 python -m unittest discover -s tests -v
 ```
 
-The checks exercise actual model inference, example selection, empty-input handling, comparison, clearing stale results, out-of-vocabulary baseline input, and BERT truncation. Submitted abstracts are not globally cached. A per-model lock serializes access to globally cached inference resources.
+The security update was checked on Linux CPU with Python 3.12: all nine tests passed and `pip check` reported no conflicts. Advisory scanning covered all 67 installed runtime packages with no known vulnerabilities reported, checking the CPU PyTorch build against upstream version 2.13.0. Both models produced identical labels across 28 synthetic example variants before and after the model-library upgrades (Torch 2.10.0/Transformers 5.0.0/tokenizers 0.22.2 versus Torch 2.13.0/Transformers 5.18.0/tokenizers 0.23.2). This is a compatibility smoke check; the full 1,796-abstract benchmark was not rerun for this update.
+
+The checks exercise actual model inference, example selection, empty-input handling, comparison, clearing stale results, out-of-vocabulary baseline input, BERT truncation, cooldowns, shared request limits, and competing requests. Submitted abstracts are not globally cached. A per-model lock serializes access to globally cached inference resources.
+
+## Public demo request controls
+
+One process-wide gate, shared across Streamlit sessions, admits at most one classification request at a time. Admission happens before artifact resolution, model loading, or inference. Compare both occupies one slot until both models finish. Busy requests receive an immediate retry message rather than waiting in an inference queue. Accepted requests, including failed model loads or predictions, count toward a rolling limit of 12 submissions per minute across all sessions. Each session also has a 10-second cooldown after its accepted request finishes. Rejected requests do not extend that cooldown or allocate per-visitor tracking entries.
+
+These limits bound model work; they do not stop connection floods or guarantee fair access. Opening a new session bypasses the session cooldown but still encounters the shared concurrency and rate caps. State resets on process restart and applies separately to each server process. Stronger per-user or per-IP enforcement needs authentication or a trusted gateway in front of the hosting service. Never trust a browser-supplied IP header for this purpose.
+
+Codespaces installs the same demo dependencies on Python 3.12 and runs Streamlit with its CORS and XSRF protections enabled by default. Keep port 8501 private while developing. If the embedded preview fails, open the forwarded port in a browser tab; do not disable these protections.
+
+## Demo dependency updates
+
+`demo/requirements.in` defines the model-compatible environment and explicit security upgrades. `demo/requirements.txt` pins its full resolved dependency set, including packages the hosting environment may already have installed. PyTorch uses official CPU wheel URLs for Python 3.12 on Linux x86_64/aarch64, Windows AMD64/ARM64, and Apple silicon macOS 14+. Other packages come only from PyPI. Use Python 3.12 for these wheels. The original training requirements in the repository root describe the experiment environment and are separate from public demo deployment.
+
+To refresh the pins with uv and audit the resulting environment:
+
+```bash
+uv pip compile demo/requirements.in --python-version 3.12 --universal --emit-index-url -o demo/requirements.txt
+python -m pip install -r demo/requirements.txt
+python -m pip check
+pip-audit
+```
+
+Install `uv` and `pip-audit` as development tools separately. Check the audit output for skipped packages: the CPU build's `torch==2.13.0+cpu` version may require a separate advisory lookup for its upstream `torch==2.13.0` release. Review audit findings for applicability and rerun the integration and saved-prediction checks after changing model libraries. An audit is a check against known advisories, not a guarantee that no vulnerabilities exist. Merging demo dependency changes into the deployed branch triggers a Community Cloud rebuild; reboot the app if it retains its previous environment. Rebuild an existing Codespace to apply its updated setup.
 
 ## Interpretation
 
